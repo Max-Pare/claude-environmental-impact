@@ -2,13 +2,6 @@
 A tool to get a rough estimation of the environmental impact your Claude session has.
 Hypocritically written with the assistance of Claude.
 
-<h1>Usage</h1>
-# claude-environmental-impact — Claude Code Eco Tracker Plugin
-
-Tracks the estimated environmental footprint of your Claude Code sessions in real time: power draw, cooling water, CO₂ emissions, and heat generated.
-
----
-
 ## Installation
 
 ```bash
@@ -52,7 +45,7 @@ Type `cancel` at any step to abort.
 When active, an eco block is appended after every response:
 
 ```
-─── 🌱 Eco Impact (~12K tokens, 8 turns) ──────────────────────────────
+───  Eco Impact (~12K tokens, 8 turns) ──────────────────────────────
                        Power         Water         CO₂           Heat
 Real-time inference:   0.027 Wh      0.049 mL      0.010 g       0.097 kJ
 Incl. infrastructure:  0.041 Wh      0.073 mL      0.016 g       0.146 kJ

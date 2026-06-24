@@ -94,7 +94,7 @@ process.stdin.on('end', () => {
 
       if (/^cancel$/i.test(ans)) {
         clearManualState();
-        block('🌱 Manual calculator cancelled.');
+        block(' Manual calculator cancelled.');
         return;
       }
 
@@ -159,7 +159,7 @@ process.stdin.on('end', () => {
     if (/^\/eco(?::eco)?\s+manual\b/i.test(prompt)) {
       setManualState({ step: 'tokens' });
       block(
-        '🌱 Eco Manual Calculator\n' +
+        ' Eco Manual Calculator\n' +
         '─────────────────────────────────────────\n' +
         'How many total tokens? (input + output combined)\n' +
         'Enter a number, or "cancel" to abort.'
@@ -171,7 +171,7 @@ process.stdin.on('end', () => {
     if (/^\/eco(?::eco)?\s+(visual|vis|v)\b/i.test(prompt)) {
       const tokens = getTokens(data);
       if (!tokens || tokens.turns === 0) {
-        block('🌱 No turns yet — run a few prompts first.');
+        block(' No turns yet — run a few prompts first.');
       } else {
         block(formatVisual(tokens));
       }
@@ -188,13 +188,13 @@ process.stdin.on('end', () => {
       if (isEcoOff || active) {
         setEcoActive(false);
         const tokens = getTokens(data);
-        let body = '🌱 Eco tracker deactivated.';
+        let body = ' Eco tracker deactivated.';
         if (tokens && tokens.turns > 0) body += '\n\nFinal session impact:' + formatEcoBlock(tokens);
         block(body);
       } else {
         setEcoActive(true);
         const tokens = getTokens(data);
-        let body = '🌱 Eco tracker activated. Impact will be appended after each response.\n';
+        let body = ' Eco tracker activated. Impact will be appended after each response.\n';
         if (tokens && tokens.turns > 0) body += '\nCurrent session:' + formatEcoBlock(tokens);
         else body += '\nNo turns yet — first eco block will appear after this response.';
         block(body);

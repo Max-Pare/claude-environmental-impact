@@ -119,7 +119,7 @@ function formatEcoBlock(tokens) {
   const sep = '─'.repeat(69);
   return [
     ``,
-    `─── 🌱 Eco Impact (~${humanizeTokens(total)} tokens, ${tokens.turns} turns) ${'─'.repeat(30)}`,
+    `───  Eco Impact (~${humanizeTokens(total)} tokens, ${tokens.turns} turns) ${'─'.repeat(30)}`,
     `                       ${'Power'.padEnd(W)} ${'Water'.padEnd(W)} ${'CO₂'.padEnd(W)} Heat`,
     `Real-time inference:   ${col(rt.wh,   'Wh',  W)} ${col(rt.mlWater,   'mL', W)} ${col(rt.gCO2,   'g', W)} ${fmtVal(rt.kj)} kJ`,
     `Incl. infrastructure:  ${col(full.wh, 'Wh',  W)} ${col(full.mlWater, 'mL', W)} ${col(full.gCO2, 'g', W)} ${fmtVal(full.kj)} kJ`,
@@ -221,7 +221,7 @@ function formatVisual(tokens, opts) {
 
   const SEP = '─'.repeat(69);
   const turnsLabel = tokens.turns ? `, ${tokens.turns} turns` : '';
-  const defaultHeader = `─── 🌱 Eco Visual  (~${humanizeTokens(total)} tokens${turnsLabel}) ${'─'.repeat(28)}`;
+  const defaultHeader = `───  Eco Visual  (~${humanizeTokens(total)} tokens${turnsLabel}) ${'─'.repeat(28)}`;
   const out = [];
   out.push('');
   out.push(opts.header || defaultHeader);
@@ -354,7 +354,7 @@ function formatVisualManual(totalTokens, aiKey, modelKey) {
     turns:           null,
   };
 
-  const hdr = `─── 🌱 Eco Manual: ${modelLabel}  (~${humanizeTokens(totalTokens)} tokens) ───`;
+  const hdr = `───  Eco Manual: ${modelLabel}  (~${humanizeTokens(totalTokens)} tokens) ───`;
   return formatVisual(syntheticTokens, {
     coeff,
     header:     hdr,
