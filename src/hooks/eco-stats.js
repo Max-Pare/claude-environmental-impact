@@ -31,12 +31,13 @@ const EMPIRICAL = {
   INFRA_MULTIPLIER : 1.5,    // amortized training + hardware mfg overhead
 };
 
-function calcResources(tokens, includeInfra) {
+function calcResources(tokens, includeInfra, coeff) {
+  coeff = coeff || EMPIRICAL;
   const { outputTokens = 0, inputTokens = 0, cacheReadTokens = 0 } = tokens;
   const mult = includeInfra ? EMPIRICAL.INFRA_MULTIPLIER : 1;
 
-  const whOut  = (outputTokens / 1000) * EMPIRICAL.WH_PER_1K_OUTPUT;
-  const whIn   = ((inputTokens + cacheReadTokens) / 1000) * EMPIRICAL.WH_PER_1K_INPUT;
+  const whOut  = (outputTokens / 1000) * coeff.WH_PER_1K_OUTPUT;
+  const whIn   = ((inputTokens + cacheReadTokens) / 1000) * coeff.WH_PER_1K_INPUT;
   const wh     = (whOut + whIn) * mult;
   const kwh    = wh / 1000;
 
@@ -196,10 +197,12 @@ function buildArtSection(totalUnits, makeItemFn, perRow, rowHeight) {
   return { art: tileArt(items, perRow, rowHeight), hidden: totalItems - showCount };
 }
 
-function formatVisual(tokens) {
+function formatVisual(tokens, opts) {
+  opts = opts || {};
+  const coeff = opts.coeff || null;
   const total = tokens.outputTokens + tokens.inputTokens + tokens.cacheReadTokens;
-  const rt   = calcResources(tokens, false);
-  const full = calcResources(tokens, true);
+  const rt   = calcResources(tokens, false, coeff);
+  const full = calcResources(tokens, true,  coeff);
 
   const ML_PER_GLASS  = 250;
   const WH_PER_LAPTOP = 60;    // typical laptop full charge (MacBook Air ~49 Wh, average ~60 Wh)
@@ -217,9 +220,11 @@ function formatVisual(tokens) {
   }
 
   const SEP = '─'.repeat(69);
+  const turnsLabel = tokens.turns ? `, ${tokens.turns} turns` : '';
+  const defaultHeader = `─── 🌱 Eco Visual  (~${humanizeTokens(total)} tokens${turnsLabel}) ${'─'.repeat(28)}`;
   const out = [];
   out.push('');
-  out.push(`─── 🌱 Eco Visual  (~${humanizeTokens(total)} tokens, ${tokens.turns} turns) ${'─'.repeat(28)}`);
+  out.push(opts.header || defaultHeader);
 
   out.push('');
   out.push(`💧 WATER  ·  1 glass = ${ML_PER_GLASS} mL`);
@@ -249,8 +254,116 @@ function formatVisual(tokens) {
   if (fullAC.hidden) out.push(`  ··· +${fullAC.hidden} more hours`);
 
   out.push('');
+  if (opts.footerNote) out.push(opts.footerNote);
   out.push(SEP);
   return out.join('\n');
 }
 
-module.exports = { parseSession, findRecentSession, calcResources, formatEcoBlock, formatVisual, EMPIRICAL };
+// ── Per-AI model coefficients ───────────────────────────────────────────────
+// wh_out: Wh per 1K output tokens  wh_in: Wh per 1K input tokens
+// Estimates based on model parameter count relative to H100 baseline (70B = 1.5 Wh/1K out).
+// Reasoning models (o1/o3/R1) run many internal CoT tokens → higher effective cost.
+
+const AI_MODELS = {
+  chatgpt: {
+    name: 'ChatGPT / OpenAI',
+    models: {
+      'gpt-4o':         { wh_out: 1.5,  wh_in: 0.15, label: 'GPT-4o' },
+      'gpt-4o-mini':    { wh_out: 0.4,  wh_in: 0.04, label: 'GPT-4o mini' },
+      'gpt-4-turbo':    { wh_out: 2.0,  wh_in: 0.20, label: 'GPT-4 Turbo' },
+      'gpt-3.5-turbo':  { wh_out: 0.3,  wh_in: 0.03, label: 'GPT-3.5 Turbo' },
+      'o1':             { wh_out: 5.0,  wh_in: 0.50, label: 'o1 (reasoning)' },
+      'o3':             { wh_out: 10.0, wh_in: 1.00, label: 'o3 (reasoning)' },
+      'o4-mini':        { wh_out: 1.5,  wh_in: 0.15, label: 'o4-mini' },
+    },
+    default: { wh_out: 1.0, wh_in: 0.10, label: 'avg ChatGPT (free+paid mix)' },
+  },
+  claude: {
+    name: 'Claude / Anthropic',
+    models: {
+      'claude-haiku-4':    { wh_out: 0.4,  wh_in: 0.04, label: 'Claude Haiku 4' },
+      'claude-sonnet-4':   { wh_out: 1.5,  wh_in: 0.15, label: 'Claude Sonnet 4' },
+      'claude-opus-4':     { wh_out: 2.5,  wh_in: 0.25, label: 'Claude Opus 4' },
+      'claude-3-haiku':    { wh_out: 0.3,  wh_in: 0.03, label: 'Claude 3 Haiku' },
+      'claude-3.5-sonnet': { wh_out: 1.5,  wh_in: 0.15, label: 'Claude 3.5 Sonnet' },
+      'claude-3-opus':     { wh_out: 2.5,  wh_in: 0.25, label: 'Claude 3 Opus' },
+    },
+    default: { wh_out: 1.0, wh_in: 0.10, label: 'avg Claude (free+paid mix)' },
+  },
+  gemini: {
+    name: 'Gemini / Google',
+    models: {
+      'gemini-2.5-pro':   { wh_out: 2.0, wh_in: 0.20, label: 'Gemini 2.5 Pro' },
+      'gemini-2.0-flash': { wh_out: 0.6, wh_in: 0.06, label: 'Gemini 2.0 Flash' },
+      'gemini-1.5-pro':   { wh_out: 1.5, wh_in: 0.15, label: 'Gemini 1.5 Pro' },
+      'gemini-1.5-flash': { wh_out: 0.5, wh_in: 0.05, label: 'Gemini 1.5 Flash' },
+    },
+    default: { wh_out: 1.0, wh_in: 0.10, label: 'avg Gemini (free+paid mix)' },
+  },
+  llama: {
+    name: 'LLaMA / Meta',
+    models: {
+      'llama-3.1-8b':   { wh_out: 0.3,  wh_in: 0.03, label: 'LLaMA 3.1 8B' },
+      'llama-3.3-70b':  { wh_out: 1.5,  wh_in: 0.15, label: 'LLaMA 3.3 70B' },
+      'llama-3.1-405b': { wh_out: 4.0,  wh_in: 0.40, label: 'LLaMA 3.1 405B' },
+      'llama-4-scout':  { wh_out: 0.8,  wh_in: 0.08, label: 'LLaMA 4 Scout' },
+      'llama-4-maverick':{ wh_out: 1.5, wh_in: 0.15, label: 'LLaMA 4 Maverick' },
+    },
+    default: { wh_out: 1.2, wh_in: 0.12, label: 'avg LLaMA (typical cloud deployment)' },
+  },
+  mistral: {
+    name: 'Mistral',
+    models: {
+      'mistral-small':  { wh_out: 0.4, wh_in: 0.04, label: 'Mistral Small' },
+      'mistral-medium': { wh_out: 1.0, wh_in: 0.10, label: 'Mistral Medium' },
+      'mistral-large':  { wh_out: 1.5, wh_in: 0.15, label: 'Mistral Large' },
+      'codestral':      { wh_out: 0.8, wh_in: 0.08, label: 'Codestral' },
+    },
+    default: { wh_out: 0.9, wh_in: 0.09, label: 'avg Mistral' },
+  },
+  grok: {
+    name: 'Grok / xAI',
+    models: {
+      'grok-3':       { wh_out: 2.0, wh_in: 0.20, label: 'Grok 3' },
+      'grok-3-mini':  { wh_out: 0.5, wh_in: 0.05, label: 'Grok 3 mini' },
+      'grok-2':       { wh_out: 1.5, wh_in: 0.15, label: 'Grok 2' },
+    },
+    default: { wh_out: 1.2, wh_in: 0.12, label: 'avg Grok' },
+  },
+};
+
+// Manual calculator: given only a total token count + optional AI/model,
+// compute visual using a 75% input / 25% output split assumption.
+function formatVisualManual(totalTokens, aiKey, modelKey) {
+  let coeff = null;
+  let modelLabel;
+
+  if (!aiKey) {
+    modelLabel = 'global estimate (avg large LLM)';
+  } else {
+    const aiInfo = AI_MODELS[aiKey];
+    const modelInfo = modelKey && aiInfo.models[modelKey] ? aiInfo.models[modelKey] : aiInfo.default;
+    coeff = { WH_PER_1K_OUTPUT: modelInfo.wh_out, WH_PER_1K_INPUT: modelInfo.wh_in };
+    modelLabel = `${aiInfo.name} · ${modelInfo.label}`;
+  }
+
+  const syntheticTokens = {
+    outputTokens:    Math.round(totalTokens * 0.25),
+    inputTokens:     Math.round(totalTokens * 0.75),
+    cacheReadTokens: 0,
+    turns:           null,
+  };
+
+  const hdr = `─── 🌱 Eco Manual: ${modelLabel}  (~${humanizeTokens(totalTokens)} tokens) ───`;
+  return formatVisual(syntheticTokens, {
+    coeff,
+    header:     hdr,
+    footerNote: 'Token split: 75% input / 25% output (estimated). Actual split changes results.',
+  });
+}
+
+module.exports = {
+  parseSession, findRecentSession, calcResources,
+  formatEcoBlock, formatVisual, formatVisualManual,
+  AI_MODELS, EMPIRICAL,
+};
