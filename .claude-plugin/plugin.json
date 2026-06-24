@@ -1,0 +1,22 @@
+{
+  "name": "eco",
+  "description": "Tracks estimated resource consumption (power, water, CO₂, heat) of your LLM session. Use /eco to activate.",
+  "author": {
+    "name": "maxpare",
+    "url": ""
+  },
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/src/hooks/eco-tracker.js\"",
+            "timeout": 5,
+            "statusMessage": "Calculating eco impact..."
+          }
+        ]
+      }
+    ]
+  }
+}
