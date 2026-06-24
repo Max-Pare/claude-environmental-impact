@@ -219,6 +219,7 @@ function formatVisual(tokens, opts) {
     return `${n < 10 ? n.toFixed(1) : Math.round(n)} ${unit}`;
   }
 
+  const noArt = !!opts.noArt;
   const SEP = '─'.repeat(69);
   const turnsLabel = tokens.turns ? `, ${tokens.turns} turns` : '';
   const defaultHeader = `───  Eco Visual  (~${humanizeTokens(total)} tokens${turnsLabel}) ${'─'.repeat(28)}`;
@@ -229,29 +230,23 @@ function formatVisual(tokens, opts) {
   out.push('');
   out.push(`💧 WATER  ·  1 glass = ${ML_PER_GLASS} mL`);
   out.push(`   inference only:        ${fmtVal(rt.mlWater)} mL  ≈  ${cntStr(rt.mlWater / ML_PER_GLASS, 'glasses')}`);
-  out.push(rtWater.art);
-  if (rtWater.hidden) out.push(`  ··· +${rtWater.hidden} more glasses`);
+  if (!noArt) { out.push(rtWater.art); if (rtWater.hidden) out.push(`  ··· +${rtWater.hidden} more glasses`); }
   out.push(`   incl. infrastructure:  ${fmtVal(full.mlWater)} mL  ≈  ${cntStr(full.mlWater / ML_PER_GLASS, 'glasses')}`);
-  out.push(fullWater.art);
-  if (fullWater.hidden) out.push(`  ··· +${fullWater.hidden} more glasses`);
+  if (!noArt) { out.push(fullWater.art); if (fullWater.hidden) out.push(`  ··· +${fullWater.hidden} more glasses`); }
 
   out.push('');
   out.push(`⚡ POWER  ·  1 laptop = ${WH_PER_LAPTOP} Wh (full charge, avg laptop)`);
   out.push(`   inference only:        ${fmtVal(rt.wh)} Wh  ≈  ${cntStr(rt.wh / WH_PER_LAPTOP, 'charges')}`);
-  out.push(rtPower.art);
-  if (rtPower.hidden) out.push(`  ··· +${rtPower.hidden} more charges`);
+  if (!noArt) { out.push(rtPower.art); if (rtPower.hidden) out.push(`  ··· +${rtPower.hidden} more charges`); }
   out.push(`   incl. infrastructure:  ${fmtVal(full.wh)} Wh  ≈  ${cntStr(full.wh / WH_PER_LAPTOP, 'charges')}`);
-  out.push(fullPower.art);
-  if (fullPower.hidden) out.push(`  ··· +${fullPower.hidden} more charges`);
+  if (!noArt) { out.push(fullPower.art); if (fullPower.hidden) out.push(`  ··· +${fullPower.hidden} more charges`); }
 
   out.push('');
   out.push(`❄️  AC HOURS  ·  1 unit = ${WH_PER_AC_HOUR} Wh/h (avg single split, ~1 kW / 9000–12000 BTU)`);
   out.push(`   inference only:        ${fmtVal(rt.wh)} Wh  ≈  ${cntStr(rt.wh / WH_PER_AC_HOUR, 'hours')}`);
-  out.push(rtAC.art);
-  if (rtAC.hidden) out.push(`  ··· +${rtAC.hidden} more hours`);
+  if (!noArt) { out.push(rtAC.art); if (rtAC.hidden) out.push(`  ··· +${rtAC.hidden} more hours`); }
   out.push(`   incl. infrastructure:  ${fmtVal(full.wh)} Wh  ≈  ${cntStr(full.wh / WH_PER_AC_HOUR, 'hours')}`);
-  out.push(fullAC.art);
-  if (fullAC.hidden) out.push(`  ··· +${fullAC.hidden} more hours`);
+  if (!noArt) { out.push(fullAC.art); if (fullAC.hidden) out.push(`  ··· +${fullAC.hidden} more hours`); }
 
   out.push('');
   if (opts.footerNote) out.push(opts.footerNote);

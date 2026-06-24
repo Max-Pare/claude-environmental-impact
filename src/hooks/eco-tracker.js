@@ -18,17 +18,26 @@ const {
   AI_MODELS,
 } = require('./eco-stats');
 
-const claudeDir      = process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), '.claude');
-const flagPath       = path.join(claudeDir, '.eco-active');
+const claudeDir       = process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), '.claude');
+const flagPath        = path.join(claudeDir, '.eco-active');
+const visualFlagPath  = path.join(claudeDir, '.eco-visual');
+const artFlagPath     = path.join(claudeDir, '.eco-art');
 const manualStatePath = path.join(claudeDir, '.eco-manual-state');
 
 // ── eco active flag ────────────────────────────────────────────────────────
-function isEcoActive() {
-  try { fs.accessSync(flagPath); return true; } catch { return false; }
+function isEcoActive()  { try { fs.accessSync(flagPath); return true; }       catch { return false; } }
+function isEcoVisual()  { try { fs.accessSync(visualFlagPath); return true; } catch { return false; } }
+function isEcoArt()     { try { fs.accessSync(artFlagPath); return true; }    catch { return false; } }
+
+function setFlag(p, on) {
+  if (on) { try { fs.writeFileSync(p, '1', 'utf8'); } catch {} }
+  else    { try { fs.unlinkSync(p); } catch {} }
 }
+
 function setEcoActive(on) {
-  if (on) { try { fs.writeFileSync(flagPath, '1', 'utf8'); } catch {} }
-  else    { try { fs.unlinkSync(flagPath); } catch {} }
+  setFlag(flagPath, on);
+  if (on)  { setFlag(visualFlagPath, true); }  // visual ON by default
+  if (!on) { setFlag(visualFlagPath, false); setFlag(artFlagPath, false); }
 }
 
 // ── manual wizard state ────────────────────────────────────────────────────
@@ -44,6 +53,16 @@ function clearManualState() {
 
 function block(reason) {
   process.stdout.write(JSON.stringify({ decision: 'block', reason }));
+}
+
+function parseTokenInput(s) {
+  const clean = s.replace(/[,_\s]/g, '');
+  const m = clean.match(/^([0-9]*\.?[0-9]+)\s*([kKmM]?)$/);
+  if (!m) return NaN;
+  let n = parseFloat(m[1]);
+  if (m[2] === 'k' || m[2] === 'K') n *= 1e3;
+  if (m[2] === 'm' || m[2] === 'M') n *= 1e6;
+  return Math.round(n);
 }
 
 function getTokens(data) {
@@ -99,9 +118,9 @@ process.stdin.on('end', () => {
       }
 
       if (state.step === 'tokens') {
-        const n = parseInt(ans.replace(/[,_\s]/g, ''), 10);
+        const n = parseTokenInput(ans);
         if (isNaN(n) || n <= 0) {
-          block(`Invalid: "${ans}"\nEnter a positive integer (e.g. 50000), or "cancel":`);
+          block(`Invalid: "${ans}"\nEnter a number (e.g. 50000, 43k, 10.0M), or "cancel":`);
           return;
         }
         setManualState({ step: 'ai', tokens: n });
@@ -162,18 +181,40 @@ process.stdin.on('end', () => {
         ' Eco Manual Calculator\n' +
         '─────────────────────────────────────────\n' +
         'How many total tokens? (input + output combined)\n' +
-        'Enter a number, or "cancel" to abort.'
+        'Enter a number (e.g. 50000, 43k, 10.0M), or "cancel" to abort.'
       );
+      return;
+    }
+
+    // ── /eco art ───────────────────────────────────────────────────────────
+    if (/^\/eco(?::eco)?\s+art\b/i.test(prompt)) {
+      const on = !isEcoArt();
+      setFlag(artFlagPath, on);
+      const tokens = getTokens(data);
+      let body = on ? ' ASCII art ON.' : ' ASCII art OFF.';
+      if (on && tokens && tokens.turns > 0) body += formatVisual(tokens, { noArt: false });
+      block(body);
       return;
     }
 
     // ── /eco visual ────────────────────────────────────────────────────────
     if (/^\/eco(?::eco)?\s+(visual|vis|v)\b/i.test(prompt)) {
-      const tokens = getTokens(data);
-      if (!tokens || tokens.turns === 0) {
-        block(' No turns yet — run a few prompts first.');
+      if (isEcoActive()) {
+        // toggle visual mode when eco is running
+        const on = !isEcoVisual();
+        setFlag(visualFlagPath, on);
+        const tokens = getTokens(data);
+        let body = on ? ' Visual mode ON.' : ' Visual mode OFF (compact table).';
+        if (on && tokens && tokens.turns > 0) body += formatVisual(tokens, { noArt: !isEcoArt() });
+        block(body);
       } else {
-        block(formatVisual(tokens));
+        // one-shot when eco is off
+        const tokens = getTokens(data);
+        if (!tokens || tokens.turns === 0) {
+          block(' No turns yet — run a few prompts first.');
+        } else {
+          block(formatVisual(tokens, { noArt: !isEcoArt() }));
+        }
       }
       return;
     }
@@ -194,8 +235,8 @@ process.stdin.on('end', () => {
       } else {
         setEcoActive(true);
         const tokens = getTokens(data);
-        let body = ' Eco tracker activated. Impact will be appended after each response.\n';
-        if (tokens && tokens.turns > 0) body += '\nCurrent session:' + formatEcoBlock(tokens);
+        let body = ' Eco tracker activated. Visual mode ON (no art). Use /eco art to enable ASCII art, /eco visual to switch to compact table.\n';
+        if (tokens && tokens.turns > 0) body += '\nCurrent session:' + formatVisual(tokens, { noArt: true });
         else body += '\nNo turns yet — first eco block will appear after this response.';
         block(body);
       }
@@ -206,13 +247,16 @@ process.stdin.on('end', () => {
     if (isEcoActive()) {
       const tokens = getTokens(data);
       if (tokens && tokens.turns > 0) {
+        const ecoBlock = isEcoVisual()
+          ? formatVisual(tokens, { noArt: !isEcoArt() })
+          : formatEcoBlock(tokens);
         process.stdout.write(JSON.stringify({
           hookSpecificOutput: {
             hookEventName: 'UserPromptSubmit',
             additionalContext:
               'ECO TRACKER ACTIVE. You MUST copy the following block verbatim ' +
               'at the very end of your response, after a blank line. ' +
-              'Do not modify, summarize, or omit it:\n' + formatEcoBlock(tokens),
+              'Do not modify, summarize, or omit it:\n' + ecoBlock,
           },
         }));
       }

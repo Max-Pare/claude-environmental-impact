@@ -21,28 +21,56 @@ claude plugin install ./claude-environmental-impact
 
 | Command | What it does |
 |---------|-------------|
-| `/eco` | Toggle eco tracking on/off. Shows current session stats on activation. |
+| `/eco` | Toggle eco tracking on/off. Activates in **visual mode** (no ASCII art) by default. |
 | `/eco off` | Deactivate explicitly (also: "stop eco", "disable eco", "turn off eco"). |
-| `/eco visual` | ASCII visual of current session impact (glasses of water, laptop charges, AC hours). |
+| `/eco visual` | When eco is **on**: toggle between visual and compact table mode. When eco is **off**: one-shot visual of current session. |
+| `/eco art` | Toggle ASCII art on/off within visual mode (glasses, laptop charges, AC hours). Off by default. |
 | `/eco manual` | Interactive wizard — enter a token count, pick an AI and model, get a visual estimate. Useful for estimating cost of sessions you weren't tracking. |
+
+### Visual modes
+
+By default, `/eco` activates in **visual mode without ASCII art** — shows water/power/CO₂ as comparable real-world quantities (e.g. "3.2 glasses", "0.1 laptop charges") without the tile drawings.
+
+- `/eco art` — enable ASCII art tiles (glasses, laptops, AC units)
+- `/eco visual` — switch back to compact table mode (or toggle visual back on)
 
 ### `/eco manual` wizard flow
 
 ```
 /eco manual
-→ How many total tokens?      e.g. 50000
+→ How many total tokens?      e.g. 50000, 43k, 10.0M
 → Which AI?                   chatgpt / claude / gemini / llama / mistral / grok  (or "skip")
 → Which model?                e.g. gpt-4o, claude-sonnet-4, gemini-2.5-pro        (or "skip")
 → Visual output
 ```
 
-Type `cancel` at any step to abort.
+Type `cancel` at any step to abort. Token input accepts `k`/`K` (×1000) and `m`/`M` (×1 000 000) suffixes.
 
 ---
 
 ## What gets measured
 
-When active, an eco block is appended after every response:
+When active, an eco block is appended after every response. Default output (visual mode, no art):
+
+```
+───  Eco Visual  (~12K tokens, 8 turns) ────────────────────────────────────
+
+💧 WATER  ·  1 glass = 250 mL
+   inference only:        0.049 mL  ≈  0.0 glasses
+   incl. infrastructure:  0.073 mL  ≈  0.0 glasses
+
+⚡ POWER  ·  1 laptop = 60 Wh (full charge, avg laptop)
+   inference only:        0.027 Wh  ≈  0.0 charges
+   incl. infrastructure:  0.041 Wh  ≈  0.0 charges
+
+❄️  AC HOURS  ·  1 unit = 1000 Wh/h (avg single split, ~1 kW / 9000–12000 BTU)
+   inference only:        0.027 Wh  ≈  0.0 hours
+   incl. infrastructure:  0.041 Wh  ≈  0.0 hours
+
+───────────────────────────────────────────────────────────────────────
+```
+
+With `/eco art` enabled, ASCII tile art (glasses, laptops, AC units) is added between each row. Use `/eco visual` to switch to the compact table instead:
 
 ```
 ───  Eco Impact (~12K tokens, 8 turns) ──────────────────────────────
