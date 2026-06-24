@@ -70,6 +70,23 @@ function parseSession(filePath) {
   return { outputTokens, inputTokens, cacheReadTokens, turns };
 }
 
+function parseProjectDir(transcriptPath) {
+  const dir = path.dirname(transcriptPath);
+  let files;
+  try { files = fs.readdirSync(dir).filter(f => f.endsWith('.jsonl')); }
+  catch { return parseSession(transcriptPath); }
+
+  let outputTokens = 0, inputTokens = 0, cacheReadTokens = 0, turns = 0;
+  for (const f of files) {
+    const r = parseSession(path.join(dir, f));
+    outputTokens    += r.outputTokens;
+    inputTokens     += r.inputTokens;
+    cacheReadTokens += r.cacheReadTokens;
+    turns           += r.turns;
+  }
+  return { outputTokens, inputTokens, cacheReadTokens, turns };
+}
+
 function findRecentSession(claudeDir) {
   const projectsDir = path.join(claudeDir, 'projects');
   let entries;
@@ -358,7 +375,7 @@ function formatVisualManual(totalTokens, aiKey, modelKey) {
 }
 
 module.exports = {
-  parseSession, findRecentSession, calcResources,
+  parseSession, parseProjectDir, findRecentSession, calcResources,
   formatEcoBlock, formatVisual, formatVisualManual,
   AI_MODELS, EMPIRICAL,
 };

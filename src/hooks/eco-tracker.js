@@ -13,7 +13,7 @@ const fs   = require('fs');
 const path = require('path');
 const os   = require('os');
 const {
-  parseSession, findRecentSession,
+  parseSession, parseProjectDir, findRecentSession,
   formatEcoBlock, formatVisual, formatVisualManual,
   AI_MODELS,
 } = require('./eco-stats');
@@ -68,7 +68,7 @@ function parseTokenInput(s) {
 function getTokens(data) {
   const file = data.transcript_path || findRecentSession(claudeDir);
   if (!file) return null;
-  return parseSession(file);
+  return parseProjectDir(file);
 }
 
 // Build the AI selection menu string
