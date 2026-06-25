@@ -2,21 +2,6 @@
 A tool to get a rough estimation of the environmental impact your Claude session has.
 Hypocritically written with the assistance of Claude.
 
-## Installation
-
-```bash
-claude plugin install https://github.com/Max-Pare/claude-environmental-impact
-```
-
-Or clone and install locally:
-
-```bash
-git clone https://github.com/Max-Pare/claude-environmental-impact
-claude plugin install ./claude-environmental-impact
-```
-
----
-
 ## Commands
 
 | Command | What it does |

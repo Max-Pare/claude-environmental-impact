@@ -1,0 +1,17 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "eco",
+  "description": "Tracks estimated environmental impact (power, water, CO₂, heat) of your LLM session.",
+  "owner": {
+    "name": "maxpare",
+    "url": "https://github.com/Max-Pare"
+  },
+  "plugins": [
+    {
+      "name": "eco",
+      "description": "Tracks estimated resource consumption (power, water, CO₂, heat) of your LLM session. Use /eco to activate.",
+      "source": "./",
+      "category": "productivity"
+    }
+  ]
+}
